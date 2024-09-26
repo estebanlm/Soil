@@ -69,7 +69,7 @@ SoilIndexPage >> index: anInteger [
 { #category : #initialization }
 SoilIndexPage >> initialize [ 
 	super initialize.
-	version := 1
+	version := self latestVersion
 ]
 
 { #category : #testing }
@@ -94,6 +94,11 @@ SoilIndexPage >> itemsSizeSize [
 	^ 2
 ]
 
+{ #category : #initialization }
+SoilIndexPage >> latestVersion [
+	self subclassResponsibility 
+]
+
 { #category : #accessing }
 SoilIndexPage >> pageSize [
 	^ pageSize
@@ -114,6 +119,11 @@ SoilIndexPage >> readFrom: aStream [
 	dirty := false.
 	"we do not read the pageCode here as it was read already"
 	version := aStream next
+]
+
+{ #category : #accessing }
+SoilIndexPage >> version [
+	^ version
 ]
 
 { #category : #writing }

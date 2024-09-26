@@ -191,6 +191,19 @@ SoilPersistentDatabaseJournal >> lastFileNumber [
 	^ self fileNumberFrom: self fragmentFiles first basename.
 ]
 
+{ #category : #enumerating }
+SoilPersistentDatabaseJournal >> lastObjectVersionEntriesWithObjectId: anObjectId [
+	| entries |
+	entries := OrderedCollection new.
+	self fragmentFiles do: [ :file |
+		file entriesDo: [ :entry | 
+			(entry class = SoilNewObjectVersionEntry  
+				and: [ entry objectIds includes: anObjectId]) ifTrue: [ 
+					entries add: entry  ] ].
+		entries ifNotEmpty: [ ^ entries  ] ].
+	^ #()
+]
+
 { #category : #accessing }
 SoilPersistentDatabaseJournal >> maxFragmentFiles [
 
@@ -299,7 +312,7 @@ SoilPersistentDatabaseJournal >> sortedFiles [
 { #category : #accessing }
 SoilPersistentDatabaseJournal >> transactionJournalsStartingAt: index do: aBlock [ 
 	| fragmentFiles fileIndex |
-	fragmentFiles := self fragmentFiles.
+	fragmentFiles := self fragmentFiles do: #open.
 	fileIndex := fragmentFiles 
 		detectIndex: [ :fragment | fragment firstTransactionId <= index  ]
 		ifNone: [ self error: 'fileIndex not found, should not happen' ].

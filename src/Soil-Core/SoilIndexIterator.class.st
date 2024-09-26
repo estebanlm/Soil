@@ -10,6 +10,15 @@ Class {
 	#category : #'Soil-Core-Index-Common'
 }
 
+{ #category : #enumerating }
+SoilIndexIterator >> associationsDo: aBlock [
+	| item |
+	"set currentPage to nil to force starting at the first element"
+	currentPage := nil.
+	[ (item := self nextAssociation ) notNil ] 
+		whileTrue: [ aBlock value: item ]
+]
+
 { #category : #accessing }
 SoilIndexIterator >> at: aKeyObject [
 	^ self 
@@ -43,14 +52,6 @@ SoilIndexIterator >> atIndex: anInteger [
 	2 to: anInteger do: [ :idx |
 		current := self nextAssociation ].
 	^ current value
-]
-
-{ #category : #enumerating }
-SoilIndexIterator >> basicAssociationsDo: aBlock [
-	| item |
-	[ (item := self basicNextAssociation ) notNil ] whileTrue: [
-		(self restoreItem: item) ifNotNil: [ :assoc | 
- 			aBlock value: assoc key -> (self convertValue: assoc value) ] ] 
 ]
 
 { #category : #accessing }
@@ -146,6 +147,8 @@ SoilIndexIterator >> currentPage: anObject [
 { #category : #enumerating }
 SoilIndexIterator >> do: aBlock [
 	| item |
+	"set currentPage to nil to force starting at the first element"
+	currentPage := nil.
 	"We use basicNextAssociation to avoid the creation of intermediate associations of nextAssociation"
 	[ (item := self basicNextAssociation ) notNil ] whileTrue: [ 
  		(self restoreItem: item) ifNotNil: [ :notNil |
@@ -424,6 +427,7 @@ SoilIndexIterator >> removeKey: key ifAbsent: aBlock [
 	currentPage 
 		itemAt: indexKey 
 		put: SoilObjectId removed.
+	index decreaseSize.
 	^ oldValue
 ]
 
@@ -440,7 +444,7 @@ SoilIndexIterator >> restoreItem: anItem [
 { #category : #enumerating }
 SoilIndexIterator >> reverseDo: aBlock [ 
 	| item |
-	aBlock value: self lastAssociation value.
+	self lastAssociation ifNotNil: [ :last |  aBlock value: last value ] ifNil: [ ^self ].
 	
 	"We use basicNextAssociation to avoid the creation of intermediate associations of nextAssociation"
 	[ (item := self basicPreviousAssociation ) notNil ] whileTrue: [ 
@@ -468,6 +472,6 @@ SoilIndexIterator >> values [
 	| values |
 	values := OrderedCollection new.
 	self do: [ :each |
-		values add: each value ].
+		values add: each ].
 	^ values
 ]

@@ -10,7 +10,8 @@ Class {
 	#superclass : #SoilAbstractBTreeDataPage,
 	#instVars : [
 		'lastPageIndex',
-		'lastFreePageIndex'
+		'firstFreePageIndex',
+		'size'
 	],
 	#category : #'Soil-Core-Index-BTree'
 }
@@ -21,18 +22,38 @@ SoilBTreeHeaderPage class >> pageCode [
 ]
 
 { #category : #utilities }
+SoilBTreeHeaderPage >> decreaseSize [
+ 	size := size - 1.
+ 	dirty := true
+]
+
+{ #category : #accessing }
+SoilBTreeHeaderPage >> firstFreePageIndex: anObject [
+
+	firstFreePageIndex := anObject
+]
+
+{ #category : #utilities }
 SoilBTreeHeaderPage >> headerSize [
 	^ super headerSize  
 		+ 2 "valueSize"
 		+ 2 "keySize"
 		+ self pointerSize "lastPageIndex"
 		+ self pointerSize "lastFreePageIndex"
+		+ 6 "size"
+]
+
+{ #category : #utilities }
+SoilBTreeHeaderPage >> increaseSize [
+ 	size := size + 1.
+ 	dirty := true
 ]
 
 { #category : #initialization }
 SoilBTreeHeaderPage >> initialize [ 
 	super initialize.
-	lastFreePageIndex := 0
+	firstFreePageIndex := 0.
+	size := 0
 ]
 
 { #category : #initialization }
@@ -45,12 +66,6 @@ SoilBTreeHeaderPage >> isHeaderPage [
 ]
 
 { #category : #accessing }
-SoilBTreeHeaderPage >> lastFreePageIndex: anObject [
-
-	lastFreePageIndex := anObject
-]
-
-{ #category : #accessing }
 SoilBTreeHeaderPage >> lastPageIndex [
 	^ lastPageIndex
 ]
@@ -59,6 +74,11 @@ SoilBTreeHeaderPage >> lastPageIndex [
 SoilBTreeHeaderPage >> lastPageIndex: anObject [
 	lastPageIndex := anObject.
 	dirty := true
+]
+
+{ #category : #initialization }
+SoilBTreeHeaderPage >> latestVersion [
+	^ 1
 ]
 
 { #category : #accessing }
@@ -79,8 +99,19 @@ SoilBTreeHeaderPage >> readFrom: aStream [
 	keySize := (aStream next: 2) asInteger.
 	valueSize := (aStream next: 2) asInteger.
 	lastPageIndex :=(aStream next: self pointerSize) asInteger.
-	lastFreePageIndex :=(aStream next: 4) asInteger.
+	firstFreePageIndex :=(aStream next: 4) asInteger.
+	size := (aStream next: 6) asInteger.
 	self readItemsFrom: aStream
+]
+
+{ #category : #accessing }
+SoilBTreeHeaderPage >> size [
+	^size
+]
+
+{ #category : #accessing }
+SoilBTreeHeaderPage >> size: anInteger [
+ 	size := anInteger
 ]
 
 { #category : #writing }
@@ -90,5 +121,6 @@ SoilBTreeHeaderPage >> writeHeaderOn: aStream [
 		nextPutAll: (keySize asByteArrayOfSize: 2);
 		nextPutAll: (valueSize asByteArrayOfSize: 2);
 		nextPutAll: (lastPageIndex asByteArrayOfSize: self pointerSize);
-		nextPutAll: (lastFreePageIndex asByteArrayOfSize: 4)
+		nextPutAll: (firstFreePageIndex asByteArrayOfSize: 4);
+		nextPutAll: (self size asByteArrayOfSize: 6).
 ]

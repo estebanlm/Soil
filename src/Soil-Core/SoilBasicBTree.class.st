@@ -71,7 +71,7 @@ SoilBasicBTree >> newHeaderPage [
 	^ SoilBTreeHeaderPage new
 		index: 1;
 		lastPageIndex: 2;
-		lastFreePageIndex: 0;
+		firstFreePageIndex: 0;
 		pageSize: self pageSize
 ]
 
@@ -130,6 +130,11 @@ SoilBasicBTree >> removeKey: key ifAbsent: aBlock [
 { #category : #accessing }
 SoilBasicBTree >> rootPage [
 	^ self store pageAt: 2
+]
+
+{ #category : #accessing }
+SoilBasicBTree >> size [
+	^ self headerPage size
 ]
 
 { #category : #splitting }

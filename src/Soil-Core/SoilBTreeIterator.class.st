@@ -16,6 +16,10 @@ SoilBTreeIterator >> basicAt: indexKey put: anObject [
 	| possiblePriorValue |
 	possiblePriorValue := index rootPage insertItem: (indexKey -> anObject) for: self.
 	"as an optimization we return the prior value stored in the list. If there was none we return nil"
+	 possiblePriorValue returnValue ifNil: [
+		"only increase size if there was no prior value"
+		index increaseSize].
+	
 	^ possiblePriorValue returnValue
 ]
 
@@ -29,10 +33,10 @@ SoilBTreeIterator >> findPreviousPageOf: aPage [
 	
 	aPage isHeaderPage ifTrue: [ ^nil ].
 	aPage isEmpty ifTrue: [ ^super findPreviousPageOf: aPage ].
-	"faster search not yet working"
-	self flag: #TOOD.
-	^ super findPreviousPageOf: aPage.
-	"currentPage := index rootPage findPreviousPage: aPage firstItem key with: index"
+	currentPage := index rootPage findPreviousPage: aPage firstItem key with: index path: OrderedCollection new.
+	"for now use assert to make sure this is correct"
+	self assert: (self nextPage == aPage).
+	^currentPage
 ]
 
 { #category : #accessing }

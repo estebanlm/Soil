@@ -71,7 +71,75 @@ SoilIndexedDictionaryTest >> testAddAndRemoveExistingList [
 	tx2 commit.
 	tx3 := soil newTransaction.
 	self assert: (tx3 root at: #foo ifAbsent: [ nil ]) equals: nil.
+	self assert: tx3 root size equals: 0
 
+]
+
+{ #category : #tests }
+SoilIndexedDictionaryTest >> testAddRandom [
+	| tx numEntries entries|
+	tx := soil newTransaction.
+	tx root: dict.
+	"just some random adding and checking that we can find it, configured to create lots of pages"
+	
+	numEntries := 1000.
+	entries := Set new: numEntries.
+	
+	numEntries timesRepeat: [ | toAdd |
+		toAdd := (numEntries*20) atRandom.
+		entries add: toAdd.
+		dict at: toAdd  put: (toAdd asByteArrayOfSize: 8)].
+	
+	"check size"
+	self assert: dict size equals: entries size.
+	
+	"can we find all the keys we added?"
+	entries do: [:each | self assert: (dict at: each ) equals: (each asByteArrayOfSize: 8)].
+	
+	"iterate index, all should be in entries"
+	dict do: [:each | self assert: each equals: (each asByteArrayOfSize: 8)].
+	dict reverseDo: [:each | self assert: each equals: (each asByteArrayOfSize: 8)]
+]
+
+{ #category : #tests }
+SoilIndexedDictionaryTest >> testAddRandomRemove [
+	| tx numEntries entries removed numRemoved|
+	tx := soil newTransaction.
+	tx root: dict.
+	"just some random adding/removing and checking state after"
+	
+	numEntries := 1000.
+	entries := Set new: numEntries.
+	
+	numEntries timesRepeat: [ | toAdd |
+		toAdd := (numEntries*20) atRandom.
+		entries add: toAdd.
+		dict at: toAdd  put:  (toAdd asByteArrayOfSize: 8) ].
+	
+	"check size"
+	self assert: dict size equals: entries size.
+	
+	"can we find all the keys we added?"
+	entries do: [:each | self assert: (dict at: each ) equals:  (each asByteArrayOfSize: 8)].
+	
+	"iterate index, all should be in entries"
+	dict do: [:each | self assert: each equals: (each asByteArrayOfSize: 8)].
+	dict reverseDo: [:each | self assert: each equals: (each asByteArrayOfSize: 8)].
+	
+	"we remove half randomly"
+	numRemoved := numEntries quo: 2.
+	removed := Set new: numRemoved.
+	numRemoved timesRepeat: [ | toRemove |
+			toRemove := entries atRandom.
+			(removed includes: toRemove) ifFalse: [  
+				removed add: toRemove.
+				dict removeKey: toRemove]].
+		
+	"can we find all the keys that should still be there?"
+	(entries copyWithoutAll: removed) do: [:each | self assert: (dict at: each ) equals: (each asByteArrayOfSize: 8)].
+	
+	"all the removed ones are gone"
+	removed do: [ :each | self assert: (dict at: each ifAbsent: [ true ]) ]
 ]
 
 { #category : #tests }
@@ -463,7 +531,7 @@ SoilIndexedDictionaryTest >> testLastWithTransactionRemoved [
 ]
 
 { #category : #tests }
-SoilIndexedDictionaryTest >> testNextAfterWithTransaction [
+SoilIndexedDictionaryTest >> testNextAfter [
 	| tx tx2 |
 	tx := soil newTransaction.
 	tx root: dict.
@@ -479,7 +547,7 @@ SoilIndexedDictionaryTest >> testNextAfterWithTransaction [
 ]
 
 { #category : #tests }
-SoilIndexedDictionaryTest >> testNextcloseToWithTransaction [
+SoilIndexedDictionaryTest >> testNextCloseTo [
 	| tx tx2 |
 	tx := soil newTransaction.
 	tx root: dict.
@@ -601,7 +669,7 @@ SoilIndexedDictionaryTest >> testSecondWithTransaction [
 ]
 
 { #category : #tests }
-SoilIndexedDictionaryTest >> testSizeWithTransaction [
+SoilIndexedDictionaryTest >> testSize [
 	| tx tx2 |
 	tx := soil newTransaction.
 	tx root: dict.
@@ -615,7 +683,7 @@ SoilIndexedDictionaryTest >> testSizeWithTransaction [
 ]
 
 { #category : #tests }
-SoilIndexedDictionaryTest >> testValuesWithTransaction [
+SoilIndexedDictionaryTest >> testValues [
 	| tx tx2 |
 	tx := soil newTransaction.
 	tx root: dict.
