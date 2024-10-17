@@ -68,6 +68,11 @@ SoilObjectProxy >> isIdenticalTo: anObject [
 ]
 
 { #category : #testing }
+SoilObjectProxy >> isNil [ 
+	^ self soilRealObject isNil
+]
+
+{ #category : #testing }
 SoilObjectProxy >> isSoilProxy [ 
 	^ true
 ]
@@ -112,6 +117,11 @@ SoilObjectProxy >> printString [
 { #category : #soil }
 SoilObjectProxy >> soilLoadedIn: aTransaction [ 
 	transaction := aTransaction  
+]
+
+{ #category : #serializing }
+SoilObjectProxy >> soilMaterializationReplacement [
+	^ self
 ]
 
 { #category : #'reflective operations' }

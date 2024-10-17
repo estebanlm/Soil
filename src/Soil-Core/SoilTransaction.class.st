@@ -21,10 +21,7 @@ Class {
 
 { #category : #aborting }
 SoilTransaction >> abort [
-	soil ifNotNil: [  
-		soil notificationHandler transactionAborted: self ].
-	self basicAbort.
-
+	self transactionManager abortTransaction: self
 ]
 
 { #category : #accessing }
@@ -241,16 +238,12 @@ SoilTransaction >> buildWriteVersion [
 
 { #category : #accessing }
 SoilTransaction >> commit [
-	self basicCommit.
-	soil checkpoint.
-	self basicAbort.
+	self transactionManager commitTransaction: self 
 ]
 
 { #category : #actions }
 SoilTransaction >> commitAndContinue [
-	self basicCommit.
-	soil checkpoint.
-	self continue
+	self transactionManager commitAndContinueTransaction: self 
 ]
 
 { #category : #actions }
@@ -317,6 +310,11 @@ SoilTransaction >> findRecords: aBlock [
 { #category : #testing }
 SoilTransaction >> hasModifications [ 
 	^ self dirtyObjects notEmpty
+]
+
+{ #category : #testing }
+SoilTransaction >> hasRecordsToCommit [ 
+	^  recordsToCommit notEmpty
 ]
 
 { #category : #accessing }
@@ -635,6 +633,11 @@ SoilTransaction >> soil: aSoil [
 { #category : #accessing }
 SoilTransaction >> start [
 	createdAt := DateAndTime now
+]
+
+{ #category : #accessing }
+SoilTransaction >> transactionManager [ 
+	^ soil transactionManager
 ]
 
 { #category : #accessing }

@@ -21,6 +21,11 @@ Object >> soilLoadedIn: aTransaction [
 ]
 
 { #category : #'*Soil-Serializer' }
+Object >> soilMaterializationReplacement [
+	^ self
+]
+
+{ #category : #'*Soil-Serializer' }
 Object >> soilMaterialize: materializer [
 	^ self 
 ]
@@ -40,6 +45,11 @@ Object >> soilReplacement [
 ]
 
 { #category : #'*Soil-Serializer' }
+Object >> soilSerializationReplacement [
+	^ self
+]
+
+{ #category : #'*Soil-Serializer' }
 Object >> soilSerialize [
 	^ ByteArray streamContents: [ :stream |
 		self soilSerializeOn: stream ]
@@ -48,9 +58,11 @@ Object >> soilSerialize [
 
 { #category : #'*Soil-Serializer' }
 Object >> soilSerialize: aSoilSerializer [ 
+	| object |
+	object := self soilSerializationReplacement.
 	aSoilSerializer 
-		registerObject: self 
-		ifAbsent: [ self soilBasicSerialize: aSoilSerializer ].
+		registerObject: object 
+		ifAbsent: [ object soilBasicSerialize: aSoilSerializer ].
 	
 ]
 
