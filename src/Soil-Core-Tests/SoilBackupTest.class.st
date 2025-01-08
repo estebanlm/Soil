@@ -3,7 +3,8 @@ Class {
 	#superclass : #TestCase,
 	#instVars : [
 		'soil',
-		'backupSoil'
+		'backupSoil',
+		'migrationClass'
 	],
 	#category : #'Soil-Core-Tests-Visitor'
 }
@@ -11,6 +12,14 @@ Class {
 { #category : #accessing }
 SoilBackupTest >> backupPath [
 	^ 'soil-backup'
+]
+
+{ #category : #helpers }
+SoilBackupTest >> createMigrationClass [
+	^ (SoilBaseTestObject << #SOBackupMigrationObject
+		layout: FixedLayout;
+		slots: { #one }; 
+		package: self class package name) install
 ]
 
 { #category : #accessing }
@@ -29,6 +38,8 @@ SoilBackupTest >> setUp [
 
 { #category : #running }
 SoilBackupTest >> tearDown [ 
+	migrationClass ifNotNil: [ 
+		migrationClass removeFromSystem ].
 	super tearDown.
 	soil ifNotNil: [ 
 		soil close ].
@@ -68,6 +79,57 @@ SoilBackupTest >> testBackupCurrentVersion [
 ]
 
 { #category : #tests }
+SoilBackupTest >> testBackupOldBehavior [ 
+	| tx visitor tx3 object objectId versions object2 |
+	migrationClass := self createMigrationClass.
+	object := migrationClass new
+		instVarNamed: #one put: #onevalue;
+		yourself .
+	
+	tx := soil newTransaction.
+	tx makeRoot: object.
+	tx root: (Dictionary new 
+		at: #oldObject put: object;
+		yourself).
+	tx commit.
+	
+	migrationClass addSlot: #two.
+	object2 := migrationClass new
+		instVarNamed: #two put: #twovalue;
+		yourself .
+	
+	tx := soil newTransaction.
+	tx makeRoot: object2.
+	tx root at: #newObject put: object2.
+	tx markDirty: tx root.
+	tx commit.
+	
+	objectId := soil behaviorRegistry nameAt: #SOBackupMigrationObject ifAbsent: [ Error signal ]. 
+	versions := soil objectRepository metaSegment allVersionsAt: objectId index.
+	
+	self assert: versions size equals: 2.
+
+	backupSoil := Soil createOnPath: self path, #backup.
+	
+	visitor := SoilBackupVisitor new 
+		target: backupSoil;
+		backup: soil.
+
+	backupSoil close; open.
+	
+	tx3 := backupSoil newTransaction.
+	self 
+		shouldnt: [ (tx3 root at: #oldObject) yourself ]
+		raise: Error.
+	tx3 abort.
+	
+	objectId := backupSoil behaviorRegistry nameAt: #SOBackupMigrationObject ifAbsent: [ Error signal ].
+	versions := backupSoil objectRepository metaSegment allVersionsAt: objectId index.
+	self assert: versions size equals: 2.
+
+]
+
+{ #category : #tests }
 SoilBackupTest >> testBackupOldVersion [ 
 	| tx tx2 visitor tx3 |
 	tx := soil newTransaction.
@@ -98,6 +160,39 @@ SoilBackupTest >> testBackupOldVersion [
 ]
 
 { #category : #tests }
+SoilBackupTest >> testBackupTheBackup [
+	| tx visitor dict secondBackup txn |
+	dict := SoilSkipListDictionary  new
+		keySize: 10;
+		maxLevel: 8;
+		yourself.
+	tx := soil newTransaction.
+	tx root: dict.
+	1 to: 100 do: [ :n | dict at: n put: n asString ].
+	tx commit.
+	
+	backupSoil := Soil createOnPath: self path, #backup1.
+	visitor := SoilBackupVisitor new 
+		target: backupSoil;
+		backup: soil.
+
+	backupSoil close; open.
+	
+	secondBackup := Soil createOnPath: self path, #backup2.
+	visitor := SoilBackupVisitor new 
+		target: secondBackup;
+		backup: backupSoil.
+	secondBackup open.
+
+	txn := secondBackup newTransaction.
+	self assert: txn root values size equals: 100.
+	txn abort.
+	
+	secondBackup close; destroy
+		
+]
+
+{ #category : #tests }
 SoilBackupTest >> testBackupWithIndex [ 
 	| tx backup tx2 dict object |
 	tx := soil newTransaction.
@@ -109,7 +204,6 @@ SoilBackupTest >> testBackupWithIndex [
 	dict at: #foo put: (SoilTestNestedObject new label: #indexed).
 	object := SoilTestClusterRoot new 
 		nested: dict.
-
 	tx commit.
 	soil backupTo: self backupPath.
 	backup := Soil new 
@@ -151,12 +245,14 @@ SoilBackupTest >> testBackupWithIndexRemoval [
 
 { #category : #tests }
 SoilBackupTest >> testSimpleBackup [ 
-	| tx backup tx2 |
+	| tx backup tx2 nested |
 	soil control
 		databaseFormatVersion: 1; 
 		applicationVersion: 5.
 	tx := soil newTransaction.
-	tx root: 'simple'.
+	nested := SoilTestClusterRoot new.
+	tx root: (SoilTestGraphRoot new nested: nested).
+	tx makeRoot: nested.
 	tx commit.
 	soil backupTo: self backupPath.
 	backup := Soil new 

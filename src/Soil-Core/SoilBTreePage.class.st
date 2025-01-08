@@ -24,7 +24,7 @@ SoilBTreePage >> addItem: anAssociation [
 	(items anySatisfy: [ :item | item key = anAssociation key ])
 		ifFalse: [ items add: anAssociation ]
 		ifTrue:  [ self itemAt: anAssociation key put: anAssociation value ].
-	dirty := true
+	needWrite := true
 ]
 
 { #category : #assertions }
@@ -40,6 +40,11 @@ SoilBTreePage >> find: aKey with: aBTree [
 	^ self subclassResponsibility
 ]
 
+{ #category : #private }
+SoilBTreePage >> findPreviousPage: aKey with: aBTree path: aPath [ 
+	^ self subclassResponsibility
+]
+
 { #category : #assertions }
 SoilBTreePage >> hasUnderflow [
 	^ self numberOfItems < ((self itemCapacity  / 2) ceiling - 1)
@@ -49,7 +54,11 @@ SoilBTreePage >> hasUnderflow [
 SoilBTreePage >> initialize [ 
 	super initialize.
 	lastTransaction := 0.
-	dirty := true
+	needWrite := true
+]
+
+{ #category : #initialization }
+SoilBTreePage >> initializeInIndex: aSoilSkipList [
 ]
 
 { #category : #adding }
@@ -86,7 +95,7 @@ SoilBTreePage >> split: newPage [
 	middle := (items size - 1 / 2) ceiling.
 	newPage setItems: (items copyFrom: middle + 1 to: items size).
 	items removeLast: items size - middle.
-	dirty := true.
+	needWrite := true.
 	^ newPage
 ]
 

@@ -15,6 +15,11 @@ SoilPagedIndexStore class >> isAbstract [
 	^ self == SoilPagedIndexStore
 ]
 
+{ #category : #initialization }
+SoilPagedIndexStore >> allocatePage [
+	^ index allocatePage 
+]
+
 { #category : #flushing }
 SoilPagedIndexStore >> flush [
 	^ self subclassResponsibility
@@ -33,6 +38,11 @@ SoilPagedIndexStore >> hasHeaderPage [
 { #category : #accessing }
 SoilPagedIndexStore >> headerPage [
 	^ self pageAt: 1
+]
+
+{ #category : #accessing }
+SoilPagedIndexStore >> includesPageAt: anInteger [ 
+	^ pages includesKey: anInteger 
 ]
 
 { #category : #accessing }
@@ -64,18 +74,18 @@ SoilPagedIndexStore >> isOpen [
 ]
 
 { #category : #accessing }
-SoilPagedIndexStore >> lastPageIndex [
-	^ self headerPage lastPageIndex
+SoilPagedIndexStore >> lastPageOffset [
+	^ self headerPage lastPageOffset
 ]
 
 { #category : #'instance creation' }
 SoilPagedIndexStore >> newPage [
-	^ index newPage
+	^ index allocatePage
 ]
 
 { #category : #accessing }
-SoilPagedIndexStore >> nextPageIndex [
-	^ self headerPage nextPageIndex
+SoilPagedIndexStore >> nextPageOffset [
+	^ self headerPage nextPageOffset
 ]
 
 { #category : #private }
@@ -102,7 +112,9 @@ SoilPagedIndexStore >> pageAt: anInteger [
 
 { #category : #accessing }
 SoilPagedIndexStore >> pageAt: anInteger put: aPage [ 
-	pagesMutex critical: [  
+	^ pagesMutex critical: [  
+		(pages includesKey: anInteger) 
+			ifTrue: [ ^ Error signal: 'store already has page with key ', anInteger asString ].
 		pages 
 			at: anInteger 
 			put: aPage ]
@@ -116,4 +128,9 @@ SoilPagedIndexStore >> pageFaultAt: anInteger [
 { #category : #accessing }
 SoilPagedIndexStore >> pages [
 	^ pages
+]
+
+{ #category : #accessing }
+SoilPagedIndexStore >> removePageAt: anInteger [ 
+	pages removeKey: anInteger 
 ]

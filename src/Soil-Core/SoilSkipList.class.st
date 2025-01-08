@@ -9,7 +9,7 @@ Class {
 	#category : #'Soil-Core-Index-SkipList'
 }
 
-{ #category : #visiting }
+{ #category : #accessing }
 SoilSkipList >> acceptSoil: aSoilVisitor [ 
 	^ aSoilVisitor visitSkipList: self
 ]
@@ -41,6 +41,11 @@ SoilSkipList >> destroy [
 { #category : #deleting }
 SoilSkipList >> flush [
 	self store flush
+]
+
+{ #category : #accessing }
+SoilSkipList >> indexId [ 
+	^ self path withoutExtension basename 
 ]
 
 { #category : #initialization }
@@ -78,23 +83,18 @@ SoilSkipList >> keySize: anInteger [
 	keySize := anInteger
 ]
 
-{ #category : #'instance creation' }
-SoilSkipList >> newHeaderPage [
-	^ SoilSkipListHeaderPage new
-		index: 1;
-		lastPageIndex: 1;
-		firstFreePageIndex: 0;
-		pageSize: self pageSize
+{ #category : #'as yet unclassified' }
+SoilSkipList >> markAllDirty [ 
+	store pages do: [ :page | self addDirtyPage: page ]
 ]
 
 { #category : #'instance creation' }
-SoilSkipList >> newPage [
-	^ self pageClass new 
-		initializeLevel: self maxLevel;
-		keySize: self keySize;
-		valueSize: self valueSize;
-		pageSize: self pageSize;
-		yourself
+SoilSkipList >> newHeaderPage [
+	^ SoilSkipListHeaderPage new
+		offset: 1;
+		lastPageOffset: 1;
+		firstFreePageIndex: 0;
+		pageSize: self pageSize
 ]
 
 { #category : #reindexing }
@@ -107,11 +107,6 @@ SoilSkipList >> newPluggableRewriter [
 SoilSkipList >> open [
 	self isOpen ifTrue: [ self error: 'Index already open' ].
 	self store open
-]
-
-{ #category : #'instance creation' }
-SoilSkipList >> pageClass [
-	^ SoilSkipListDataPage
 ]
 
 { #category : #accessing }

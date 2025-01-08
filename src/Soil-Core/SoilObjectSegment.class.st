@@ -6,16 +6,17 @@ Class {
 		'objectRepository',
 		'indexFile',
 		'objectFile',
-		'indexManager'
+		'indexManager',
+		'path'
 	],
 	#category : #'Soil-Core-Model'
 }
 
 { #category : #visiting }
 SoilObjectSegment >> acceptSoil: aSoilVisitor [ 
-	^ self isMeta 
-		ifTrue: [ aSoilVisitor visitMetaSegment: self ]
-		ifFalse: [ aSoilVisitor visitObjectSegment: self ]
+	self isMetaSegment ifTrue: [ ^ aSoilVisitor visitMetaSegment: self ].
+	self isFirstSegment ifTrue: [ ^ aSoilVisitor visitFirstSegment: self ].
+	^ aSoilVisitor visitObjectSegment: self
 ]
 
 { #category : #accessing }
@@ -25,12 +26,14 @@ SoilObjectSegment >> allRecords [
 
 { #category : #accessing }
 SoilObjectSegment >> allVersionsAt: index [ 
-	| obj versions |
+	| obj versions objectId |
 	obj := self at: index.
 	versions := OrderedCollection new.
 	versions add: obj.
+	objectId := obj objectId.
 	[ obj previousVersionPosition isZero ] whileFalse: [ 
 		obj := objectFile atPosition: obj previousVersionPosition.
+		obj objectId: objectId.
 		versions add: obj ].
 	^ versions
 ]
@@ -161,7 +164,17 @@ SoilObjectSegment >> initializeFilesystem [
 ]
 
 { #category : #testing }
+SoilObjectSegment >> isFirstSegment [
+	^ id = 1
+]
+
+{ #category : #testing }
 SoilObjectSegment >> isMeta [ 
+	^ id = 0
+]
+
+{ #category : #testing }
+SoilObjectSegment >> isMetaSegment [
 	^ id = 0
 ]
 
@@ -188,6 +201,15 @@ SoilObjectSegment >> lockLastObjectIndexFor: lockContext [
 { #category : #accessing }
 SoilObjectSegment >> lockObjectId: aSOObjectId for: lockContext [ 
 	^ indexFile lockObjectId: aSOObjectId for: lockContext 
+]
+
+{ #category : #'as yet unclassified' }
+SoilObjectSegment >> makeGCClone [
+	^ self class new 
+		id: id;
+		objectRepository: objectRepository;
+		path: self path, #gc;
+		initializeFilesystem 
 ]
 
 { #category : #ids }
@@ -220,7 +242,14 @@ SoilObjectSegment >> open [
 
 { #category : #accessing }
 SoilObjectSegment >> path [
-	^ objectRepository soil path / #segments / self id asString
+	^ path ifNil: [
+		path := objectRepository soil path / #segments / self id asString ]
+]
+
+{ #category : #accessing }
+SoilObjectSegment >> path: anObject [
+
+	path := anObject
 ]
 
 { #category : #printing }

@@ -10,6 +10,12 @@ Class {
 }
 
 { #category : #'as yet unclassified' }
+SoilTransactionManager >> abortAll [
+	transactions copy do: [ :transaction |
+		transaction abort ]
+]
+
+{ #category : #'commit/abort' }
 SoilTransactionManager >> abortTransaction: aTransaction [ 	
 	soil ifNotNil: [  
 		soil notificationHandler transactionAborted: self ].
@@ -24,21 +30,24 @@ SoilTransactionManager >> addTransaction: aSoilTransaction [
 		transactions add: aSoilTransaction ]
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'commit/abort' }
 SoilTransactionManager >> commitAndContinueTransaction: aTransaction [ 	
 	aTransaction basicCommit.
-	aTransaction hasRecordsToCommit ifTrue: [ 
+	aTransaction hasModifications ifTrue: [ 
 		soil checkpoint ].
 	aTransaction continue
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'commit/abort' }
 SoilTransactionManager >> commitTransaction: aTransaction [ 	
+	| modified |
 	aTransaction basicCommit.
-	aTransaction hasRecordsToCommit ifTrue: [ 
-		soil checkpoint ].
+	modified := aTransaction hasModifications.
 	aTransaction basicAbort.
-	self removeTransaction: aTransaction 
+	self removeTransaction: aTransaction.
+	modified ifTrue: [ 
+		soil checkpoint ].
+
 ]
 
 { #category : #initialization }
@@ -65,6 +74,14 @@ SoilTransactionManager >> newTransaction: aClass readVersion: version [
 SoilTransactionManager >> removeTransaction: aSoilTransaction [ 
 	semaphore critical: [  
 		transactions remove: aSoilTransaction ]
+]
+
+{ #category : #versions }
+SoilTransactionManager >> smallestReadVersion [ 
+	"detect the smallest read version currently in use"
+	^ transactions
+		ifNotEmpty: [ transactions min: #readVersion ]
+		ifEmpty: [ nil  ]
 ]
 
 { #category : #accessing }

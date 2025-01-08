@@ -19,7 +19,7 @@ SoilBTreeIterator >> basicAt: indexKey put: anObject [
 	 possiblePriorValue returnValue ifNil: [
 		"only increase size if there was no prior value"
 		index increaseSize].
-	
+	index addDirtyPage: currentPage.
 	^ possiblePriorValue returnValue
 ]
 
@@ -32,7 +32,6 @@ SoilBTreeIterator >> findPageFor: indexKey [
 SoilBTreeIterator >> findPreviousPageOf: aPage [
 	
 	aPage isHeaderPage ifTrue: [ ^nil ].
-	aPage isEmpty ifTrue: [ ^super findPreviousPageOf: aPage ].
 	currentPage := index rootPage findPreviousPage: aPage firstItem key with: index path: OrderedCollection new.
 	"for now use assert to make sure this is correct"
 	self assert: (self nextPage == aPage).

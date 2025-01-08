@@ -15,10 +15,48 @@ Class {
 	#name : #SoilIndex,
 	#superclass : #Object,
 	#instVars : [
-		'store'
+		'id',
+		'store',
+		'dirtyPages'
 	],
 	#category : #'Soil-Core-Index-Common'
 }
+
+{ #category : #adding }
+SoilIndex >> addDirtyPage: aPage [ 
+	
+]
+
+{ #category : #adding }
+SoilIndex >> addToFreePages: aPage [  
+	| currentFreePage newFreePage |
+	newFreePage := aPage asSoilFreePage.
+	store pageAt: aPage offset put: newFreePage.
+	currentFreePage := self firstFreePage
+		ifNil: [ 
+			"if there is no first free page yet make aPage the
+			first free page"
+			self headerPage firstFreePageIndex: newFreePage offset.
+			^ newFreePage ].
+	"if there is a first free page start scanning from here for a
+	free page that has room to store another free page"
+	[ currentFreePage hasRoom ] whileFalse: [ 
+		"if there is no room for the page to store and the current
+		free page does not have a next pointer we make aPage the 
+		next"
+		currentFreePage next isZero 
+			ifTrue: [
+				currentFreePage next: newFreePage offset.
+				^ newFreePage  ]
+			ifFalse: [ currentFreePage := store pageAt: currentFreePage next ]].
+	currentFreePage addPage: newFreePage.
+	^ newFreePage 
+]
+
+{ #category : #'instance creation' }
+SoilIndex >> allocatePage [
+	^ self subclassResponsibility
+]
 
 { #category : #private }
 SoilIndex >> at: key [ 
@@ -53,15 +91,29 @@ SoilIndex >> basicAt: key put: anObject [
 		put: anObject 
 ]
 
+{ #category : #'as yet unclassified' }
+SoilIndex >> cleanUpToVersion: version [
+	SoilIndexCleaner new 
+			index: self;
+			readVersion: version;
+			clean.
+]
+
 { #category : #'open/close' }
 SoilIndex >> close [
 	self store close.
 	store := nil
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #utilities }
 SoilIndex >> decreaseSize [
-	self headerPage decreaseSize 
+	self headerPage decreaseSize.
+	self addDirtyPage: self headerPage.
+]
+
+{ #category : #accessing }
+SoilIndex >> dirtyPages [
+	^ dirtyPages
 ]
 
 { #category : #enumerating }
@@ -86,6 +138,15 @@ SoilIndex >> first: anInteger [
 ]
 
 { #category : #accessing }
+SoilIndex >> firstFreePage [
+	| index | 
+	index := self headerPage firstFreePageIndex.
+	^ index isZero 
+		ifTrue: [ ^ nil ]
+		ifFalse: [ store pageAt: index ]
+]
+
+{ #category : #accessing }
 SoilIndex >> firstPage [
 	^ self headerPage
 ]
@@ -105,9 +166,22 @@ SoilIndex >> headerPage [
 	^ self store headerPage
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #accessing }
+SoilIndex >> id [
+
+	^ id
+]
+
+{ #category : #accessing }
+SoilIndex >> id: anObject [
+
+	id := anObject
+]
+
+{ #category : #utilities }
 SoilIndex >> increaseSize [
-	self headerPage increaseSize 
+	self headerPage increaseSize.
+	self addDirtyPage: self headerPage. 
 ]
 
 { #category : #accessing }
@@ -192,6 +266,11 @@ SoilIndex >> pages [
 	^ self store pages
 ]
 
+{ #category : #accessing }
+SoilIndex >> persistentIndex [
+	^ self 
+]
+
 { #category : #'instance creation' }
 SoilIndex >> readPageClassFrom: aStream [
 	^ SoilIndexPage readPageClassFrom: aStream
@@ -203,6 +282,21 @@ SoilIndex >> readPageFrom: aStream [
 	page := (self readPageClassFrom: aStream) basicNew.
 	page initializeInIndex: self. 
 	^ page readFrom: aStream 
+]
+
+{ #category : #removing }
+SoilIndex >> recyclePage: aPage [
+	"the header stays untouched even it it gets empty"
+	aPage isHeaderPage ifTrue: [ ^ aPage ].
+	"remove page from chain of item pages"
+	self removePage: aPage. 
+	"add page to free list chain"
+	^ self addToFreePages: aPage
+]
+
+{ #category : #removing }
+SoilIndex >> removeDirtyPage: aPage [ 
+	dirtyPages removeKey: aPage offset
 ]
 
 { #category : #removing }
@@ -223,6 +317,11 @@ SoilIndex >> removeKey: key ifAbsent: aBlock [
 			self decreaseSize.
 			(page itemRemoveIndex: index) value ]
 		ifFalse: [ aBlock value ]
+]
+
+{ #category : #removing }
+SoilIndex >> removePage: aPage [ 
+	^ self subclassResponsibility
 ]
 
 { #category : #public }

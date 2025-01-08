@@ -217,6 +217,14 @@ Soil >> findRecord: aBlock [
 		ensure: [ tx abort ]
 ]
 
+{ #category : #'memory space' }
+Soil >> garbageCollect [
+	Error signal: 'garbage collect is not ready to be used, yet'.
+	SoilGarbageCollectVisitor new 
+		soil: self;
+		run
+]
+
 { #category : #initialization }
 Soil >> initialize [ 
 	super initialize.
@@ -377,14 +385,13 @@ Soil >> objectRepository [
 { #category : #'opening/closing' }
 Soil >> open [
 	self basicOpen.
-	journal recover.
-	self metadata updateLastOpened
+	journal recover
 ]
 
 { #category : #'opening/closing' }
-Soil >> openUnlogged [
-	self basicOpen.
-	journal recover
+Soil >> openLogged [
+	self open.
+	self metadata updateLastOpened
 ]
 
 { #category : #accessing }

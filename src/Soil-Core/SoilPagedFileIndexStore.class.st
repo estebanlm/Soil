@@ -48,7 +48,7 @@ SoilPagedFileIndexStore >> flush [
 SoilPagedFileIndexStore >> flushPages [
 	pagesMutex critical: [  
 		pages valuesDo: [ :page |
-			page isDirty ifTrue: [ 
+			page needsWrite ifTrue: [ 
 				self writePage: page ] ] ]
 ]
 
@@ -76,7 +76,7 @@ SoilPagedFileIndexStore >> initializeHeaderPage [
 	| page |
 	page := index newHeaderPage.
 	pagesMutex critical: [  
-		pages at: page index put: page	]
+		pages at: page offset put: page	]
 ]
 
 { #category : #testing }
@@ -101,12 +101,12 @@ SoilPagedFileIndexStore >> openStream [
 SoilPagedFileIndexStore >> pageFaultAt: anInteger [
 	| page |
 	self ensureStreamIsOpen.
-	streamSemaphore critical: [  
-		stream position: (self positionOfPageIndex: anInteger).
-		page := (index readPageFrom: stream) 
-			index: anInteger;
-			pageSize:  self filePageSize
-			yourself ].
+	page := self readPageAt: anInteger.
+	"when there are transactions blocking clean up, those pages
+	get written with the removed items. When the page is read from
+	disk we can determine if it should undergo maintenance. This can
+	also be done while reading. Cleanup will happen on commit"
+	page needsCleanup ifTrue: [ index addDirtyPage: page ].
 	pagesMutex critical: [  
 		pages at: anInteger put: page ].
 	^ page
@@ -128,6 +128,17 @@ SoilPagedFileIndexStore >> readHeaderPage [
 ]
 
 { #category : #accessing }
+SoilPagedFileIndexStore >> readPageAt: anInteger [
+
+	^ streamSemaphore critical: [  
+		stream position: (self positionOfPageIndex: anInteger).
+		(index readPageFrom: stream) 
+			offset: anInteger;
+			pageSize:  self filePageSize
+			yourself ]
+]
+
+{ #category : #accessing }
 SoilPagedFileIndexStore >> removePageAt: anIndex [ 
 	^ pagesMutex critical: [  
 		pages removeKey: anIndex ]
@@ -137,7 +148,7 @@ SoilPagedFileIndexStore >> removePageAt: anIndex [
 SoilPagedFileIndexStore >> replace: oldPage with: newPage [ 
 	pagesMutex critical: [  
 		pages
-			at: oldPage index 
+			at: oldPage offset 
 			put:newPage ]
 ]
 
@@ -157,7 +168,7 @@ SoilPagedFileIndexStore >> writePage: aPage [
 	| pagePosition |
 	self ensureStreamIsOpen.
 	streamSemaphore critical: [  
-		pagePosition := self positionOfPageIndex: aPage index.  
+		pagePosition := self positionOfPageIndex: aPage offset.  
 		stream position: pagePosition.
 		aPage writeOn: stream.
 		stream flush ]

@@ -17,6 +17,19 @@ SoilBasicBTree class >> isAbstract [
 	^ self == SoilBasicBTree
 ]
 
+{ #category : #adding }
+SoilBasicBTree >> addDirtyPage: aPage [ 
+	dirtyPages add: aPage
+]
+
+{ #category : #'instance creation' }
+SoilBasicBTree >> allocatePage [
+	^ self newPage 
+		offset: (self nextFreePage 
+			ifNotNil: [ :freePage | freePage offset ]
+			ifNil: [ store nextPageOffset ])
+]
+
 { #category : #converting }
 SoilBasicBTree >> asCopyOnWrite [
 	^ SoilCopyOnWriteBTree new
@@ -45,6 +58,12 @@ SoilBasicBTree >> indexPages [
 ]
 
 { #category : #initialization }
+SoilBasicBTree >> initialize [ 
+	super initialize.
+	dirtyPages := Set new
+]
+
+{ #category : #initialization }
 SoilBasicBTree >> initializeFilesystem [ 
 	self store initializeFilesystem
 ]
@@ -56,7 +75,7 @@ SoilBasicBTree >> initializeHeaderPage [
 		initializeHeaderPage.
 	"we create the first index page as the root here"	
 	rootIndexPage := self newRootPage.
-	self store pageAt: rootIndexPage index put: rootIndexPage
+	self store pageAt: rootIndexPage offset put: rootIndexPage
 ]
 
 { #category : #accessing }
@@ -69,8 +88,8 @@ SoilBasicBTree >> keySize: anInteger [
 { #category : #'instance creation' }
 SoilBasicBTree >> newHeaderPage [
 	^ SoilBTreeHeaderPage new
-		index: 1;
-		lastPageIndex: 2;
+		offset: 1;
+		lastPageOffset: 2;
 		firstFreePageIndex: 0;
 		pageSize: self pageSize
 ]
@@ -80,7 +99,7 @@ SoilBasicBTree >> newIndexPage [
 	^ SoilBTreeIndexPage new 
 		keySize: self keySize;
 		pageSize: self pageSize;
-		index: self store nextPageIndex;
+		offset: self store nextPageOffset;
 		yourself
 ]
 
@@ -88,7 +107,7 @@ SoilBasicBTree >> newIndexPage [
 SoilBasicBTree >> newIndexPageFromRoot: rootIndexPage [
 	| newPage |
 	newPage := self newIndexPage.
-	self store pageAt: newPage index put: newPage.
+	self store pageAt: newPage offset put: newPage.
 	"now move over all items"
 	newPage setItems: rootIndexPage items.
 	rootIndexPage setItems: SortedCollection new.
@@ -103,9 +122,25 @@ SoilBasicBTree >> newIterator [
 { #category : #'instance creation' }
 SoilBasicBTree >> newRootPage [
 	^ SoilBTreeRootPage new
-		index: 2;
+		offset: 2;
 		keySize: self keySize;
 		pageSize: self pageSize
+]
+
+{ #category : #private }
+SoilBasicBTree >> nextFreePage [
+	| firstPage freePage |
+	firstPage := self firstFreePage ifNil: [ 
+		^ nil ].
+	^ firstPage hasFreePages 
+		ifTrue: [ 
+			freePage := store pageAt: firstPage removeFirstIndex.
+			self addDirtyPage: firstPage.
+			freePage  ] 
+		ifFalse: [ 
+			self headerPage firstFreePageIndex: 0.
+			self addDirtyPage: self headerPage.
+			firstPage ]
 ]
 
 { #category : #'open/close' }
@@ -120,11 +155,36 @@ SoilBasicBTree >> pageClass [
 ]
 
 { #category : #removing }
+SoilBasicBTree >> removeDirtyPage: aPage [ 
+	dirtyPages remove: aPage
+]
+
+{ #category : #removing }
 SoilBasicBTree >> removeKey: key ifAbsent: aBlock [
-	| removedItem |
-	removedItem := self rootPage remove: key for: self.
-	removedItem ifNil: [aBlock value].
-	^removedItem value 
+
+	^ (self rootPage remove: key for: self)
+		  ifNil: [ aBlock value ]
+		  ifNotNil: [ :removedItem | removedItem value ]
+]
+
+{ #category : #removing }
+SoilBasicBTree >> removePage: aPage [
+	| iterator previousPage |
+	(aPage offset > 1) ifFalse: [ ^ aPage ].
+
+	"We use the iterator to find the previousPage, to change it's next pointer to my next"
+	iterator := self newIterator. 
+	previousPage := iterator findPreviousPageOf: aPage. 
+	previousPage next: aPage next.
+	
+	"now remove all keys, this will update the index pages"
+	
+	aPage items reverseDo: [ :item | item ifNotNil: [self removeKey: item key]  ].
+	
+	"finally remove the page from the store"
+	store removePageAt: aPage offset.
+	^ aPage 
+
 ]
 
 { #category : #accessing }
@@ -141,18 +201,17 @@ SoilBasicBTree >> size [
 SoilBasicBTree >> splitIndexPage: page [ 
 	| newPage |
 	newPage := page split: self newIndexPage.
-	self store pageAt: newPage index put: newPage.
+	self store pageAt: newPage offset put: newPage.
 	^ newPage 
 ]
 
 { #category : #splitting }
 SoilBasicBTree >> splitPage: page [ 
 	| newPage |
-	newPage := page split: store newPage.
-	newPage index: self store nextPageIndex.
+	newPage := page split: store allocatePage.
 	newPage next: page next.
-	page next: newPage index.
-	self store pageAt: newPage index put: newPage.
+	page next: newPage offset.
+	self store pageAt: newPage offset put: newPage.
 	^ newPage 
 ]
 

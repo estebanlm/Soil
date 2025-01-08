@@ -73,7 +73,7 @@ SoilBTreeIndexPage >> insertItem: item for: iterator [
 	
 	
 	"we need to add the new page to the index above"
-	^ return indexEntry: (newPage smallestKey -> newPage index)
+	^ return indexEntry: (newPage smallestKey -> newPage offset)
 ]
 
 { #category : #testing }
@@ -86,9 +86,14 @@ SoilBTreeIndexPage >> latestVersion [
 	^ 1
 ]
 
+{ #category : #testing }
+SoilBTreeIndexPage >> needsCleanup [
+	^ false
+]
+
 { #category : #printing }
 SoilBTreeIndexPage >> printOn: aStream [ 
-	aStream << 'index page : #' << index asString
+	aStream << 'index page : #' << offset asString
 ]
 
 { #category : #reading }
