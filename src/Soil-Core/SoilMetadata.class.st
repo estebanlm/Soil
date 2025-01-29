@@ -26,17 +26,18 @@ SoilMetadata >> ensurePresent [
 ]
 
 { #category : #inspector }
-SoilMetadata >> inspectionMetadata [
-	<inspectorPresentationOrder: 1000 title: 'metadata'>
+SoilMetadata >> inspectionMetadata: aBuilder [
+	<inspectorPresentationOrder: 1000 title: 'Metadata'>
 
-	^ SpTablePresenter new
+	^ aBuilder newTable
 		items: self fields keys;
 		addColumn: (SpCompositeTableColumn new
 			title: 'key';
 			addColumn: (SpStringTableColumn evaluated: [:each | each printString ]));
 		addColumn: (SpCompositeTableColumn new
 			title: 'value';
-			addColumn: (SpStringTableColumn evaluated: [:each | self fieldAt: each asSymbol ]))
+			addColumn: (SpStringTableColumn evaluated: [:each | self fieldAt: each asSymbol ]));
+		yourself
 ]
 
 { #category : #accessing }

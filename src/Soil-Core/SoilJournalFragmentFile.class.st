@@ -216,10 +216,10 @@ SoilJournalFragmentFile >> initializeVersion [
 ]
 
 { #category : #inspector }
-SoilJournalFragmentFile >> inspectionTransactionJournals [
-	<inspectorPresentationOrder: 0 title: 'transaction journals'>
+SoilJournalFragmentFile >> inspectionTransactionJournals: aBuilder [
+	<inspectorPresentationOrder: 0 title: 'Transaction journals'>
 
-	^ SpTablePresenter new
+	^ aBuilder newTable
 		items: (self transactionJournals reverse);
 		addColumn: (SpCompositeTableColumn new
 			title: '#';
@@ -238,7 +238,8 @@ SoilJournalFragmentFile >> inspectionTransactionJournals [
 			evaluated: #createdAt);
 		addColumn: (SpStringTableColumn new
 			title: #commit;
-			evaluated: #committedAt)
+			evaluated: #committedAt);
+		yourself
 ]
 
 { #category : #'open/close' }

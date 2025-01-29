@@ -39,10 +39,12 @@ SoilConsistencyInspectorVisitor >> initialize [
 ]
 
 { #category : #'as yet unclassified' }
-SoilConsistencyInspectorVisitor >> inspectionGraph [
-	<inspectorPresentationOrder: 1800 title: 'graph'>
+SoilConsistencyInspectorVisitor >> inspectionGraph: aBuilder [
+	<inspectorPresentationOrder: 1800 title: 'Graph'>
 
-	^ SpRoassalPresenter new canvas: self roassalCanvas 
+	^ (aBuilder instantiate: SpRoassalPresenter) 
+		canvas: self roassalCanvas;
+		yourself
 ]
 
 { #category : #accessing }

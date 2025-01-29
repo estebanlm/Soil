@@ -47,10 +47,10 @@ SoilObjectProxy >> fuelReplacement [
 ]
 
 { #category : #inspector }
-SoilObjectProxy >> inspectionObject [
-	<inspectorPresentationOrder: 30 title: 'object'>
-	^ StRawInspection on: self soilRealObject 
-
+SoilObjectProxy >> inspectionObject: aBuilder [
+	<inspectorPresentationOrder: 30 title: 'Object'>
+	
+	^ self soilRealObject inspectionRaw: aBuilder
 ]
 
 { #category : #testing }

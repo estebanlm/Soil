@@ -167,10 +167,10 @@ SoilPersistentDatabaseJournal >> initializeFilesystem [
 ]
 
 { #category : #inspector }
-SoilPersistentDatabaseJournal >> inspectionContent [
-	<inspectorPresentationOrder: 0 title: 'transaction journals'>
+SoilPersistentDatabaseJournal >> inspectionContent: aBuilder [
+	<inspectorPresentationOrder: 0 title: 'Transaction journals'>
 
-	^ SpTablePresenter new
+	^ aBuilder newTable
 		items: (self fragmentFiles);
 		addColumn: (SpStringTableColumn new 
 			title: 'filename';

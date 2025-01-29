@@ -11,10 +11,10 @@ SoilMemoryDatabaseJournal >> initialize [
 ]
 
 { #category : #inspector }
-SoilMemoryDatabaseJournal >> inspectionTransactionJournals [
-	<inspectorPresentationOrder: 0 title: 'transaction journals'>
+SoilMemoryDatabaseJournal >> inspectionTransactionJournals: aBuilder [
+	<inspectorPresentationOrder: 0 title: 'Transaction journals'>
 
-	^ SpTablePresenter new
+	^ aBuilder newTable
 		items: transactionJournals;
 		addColumn: (SpCompositeTableColumn new
 			title: '#';
@@ -33,7 +33,8 @@ SoilMemoryDatabaseJournal >> inspectionTransactionJournals [
 			evaluated: #createdAt);
 		addColumn: (SpStringTableColumn new
 			title: #commit;
-			evaluated: #committedAt)
+			evaluated: #committedAt);
+		yourself
 ]
 
 { #category : #accessing }

@@ -264,24 +264,24 @@ Soil >> initializeFilesystem [
 ]
 
 { #category : #inspector }
-Soil >> inspectionControl [
-	<inspectorPresentationOrder: 2000 title: 'control'>
+Soil >> inspectionControl: aBuilder [
+	<inspectorPresentationOrder: 2000 title: 'Control'>
 
-	^ self control inspectionControl 
+	^ self control inspectionControl: aBuilder
 ]
 
 { #category : #inspector }
-Soil >> inspectionJournal [
-	<inspectorPresentationOrder: 2200 title: 'journal'>
+Soil >> inspectionJournal: aBuilder [
+	<inspectorPresentationOrder: 2200 title: 'Journal'>
 	
-	^ self journal inspectionContent
+	^ self journal inspectionContent: aBuilder
 ]
 
 { #category : #inspector }
-Soil >> inspectionMetadata [
-	<inspectorPresentationOrder: 2100 title: 'metadata'>
+Soil >> inspectionMetadata: aBuilder [
+	<inspectorPresentationOrder: 2100 title: 'Metadata'>
 
-	^ self metadata inspectionMetadata
+	^ self metadata inspectionMetadata: aBuilder
 ]
 
 { #category : #testing }

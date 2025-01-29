@@ -137,17 +137,18 @@ SoilControlFile >> initializeStart [
 ]
 
 { #category : #inspector }
-SoilControlFile >> inspectionControl [
-	<inspectorPresentationOrder: 1000 title: 'control'>
+SoilControlFile >> inspectionControl: aBuilder [
+	<inspectorPresentationOrder: 1000 title: 'Control'>
 
-	^ SpTablePresenter new
+	^ aBuilder newTable
 		items: self parameterNames;
 		addColumn: (SpCompositeTableColumn new
 			title: 'key';
 			addColumn: (SpStringTableColumn evaluated: [:each | each printString ]));
 		addColumn: (SpCompositeTableColumn new
 			title: 'value';
-			addColumn: (SpStringTableColumn evaluated: [:each | self perform: each asSymbol ]))
+			addColumn: (SpStringTableColumn evaluated: [:each | self perform: each asSymbol ]));
+		yourself
 ]
 
 { #category : #accessing }
