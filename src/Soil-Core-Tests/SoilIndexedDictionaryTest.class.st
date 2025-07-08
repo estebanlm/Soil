@@ -423,7 +423,6 @@ SoilIndexedDictionaryTest >> testFlushIndexPages [
 { #category : #tests }
 SoilIndexedDictionaryTest >> testFreePageAfterReopen [
 	| tx tx2 tx3 blockTx tx4 tx5 |
-	(classToTest = SoilBTreeDictionary) ifTrue: [ self skip ].
 	tx := soil newTransaction.
 	tx root: dict.
 	1 to: 1125 do: [ :n | dict at: n put: n asString ].
@@ -448,13 +447,13 @@ SoilIndexedDictionaryTest >> testFreePageAfterReopen [
 	tx4 root removeKey: 223.
 	tx4 commit.
 	tx5 := soil newTransaction.
-	self deny: (tx5 root index wrapped store headerPage right includes: 2)
+	(classToTest = SoilSkipListDictionary ) ifTrue: [ 
+		self deny: (tx5 root index wrapped store headerPage right includes: 2) ].
 ]
 
 { #category : #tests }
 SoilIndexedDictionaryTest >> testFreePageNotSavedRegression [
 	| tx blockTx iterator |
-	(classToTest = SoilBTreeDictionary) ifTrue: [ self skip ].
 	tx := soil newTransaction.
 	tx root: dict.
 	"fill a 5 pages"
@@ -774,7 +773,6 @@ SoilIndexedDictionaryTest >> testRemovePagesSequential [
 	tx := soil newTransaction.
 	tx root: dict.
 	1 to: 1000 do: [ :n | dict at: n put: n asString ].
-	
 	tx commit.
 	
 	"open a second transaction ..."
@@ -783,7 +781,6 @@ SoilIndexedDictionaryTest >> testRemovePagesSequential [
 	(classToTest = SoilBTreeDictionary) 
 		ifTrue: [339 to: 451 do: [ :n | tx2 root removeKey: n ]]
 		ifFalse: [ 300 to: 700 do: [ :n | tx2 root removeKey: n ]].
-	
 	tx2 commit.
 	indexManager := soil objectRepository firstSegment indexManager.
 	index := indexManager indexes anyOne.

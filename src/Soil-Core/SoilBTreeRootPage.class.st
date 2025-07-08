@@ -20,7 +20,7 @@ SoilBTreeRootPage >> initialize [
 	self addItem: 0 -> 1 "headPage id"
 ]
 
-{ #category : #searching }
+{ #category : #adding }
 SoilBTreeRootPage >> insertItem: item for: iterator [
 	| foundItem return newIndexPage1 newIndexPage2 |
 	
@@ -31,6 +31,7 @@ SoilBTreeRootPage >> insertItem: item for: iterator [
 	"We need to add to this index page"
 	
 	self addItem: return indexEntry.
+	iterator index addDirtyPage: self.
 	self hasRoom ifTrue: [  ^ return indexEntry: nil].
 	"No space, we have to split"
 

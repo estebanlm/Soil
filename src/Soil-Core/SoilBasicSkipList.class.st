@@ -17,17 +17,6 @@ SoilBasicSkipList class >> isAbstract [
 	^ self == SoilBasicSkipList
 ]
 
-{ #category : #'instance creation' }
-SoilBasicSkipList >> allocatePage [
-	| page |
-	page := self newPage 
-		offset: (self nextFreePageIndex
-			ifNil: [ self nextPageOffset ]).
-	self store pageAt: page offset put: page.
-	self addDirtyPage: page.
-	^ page
-]
-
 { #category : #testing }
 SoilBasicSkipList >> hasHeaderPage [
 	^ store hasHeaderPage 
@@ -51,6 +40,11 @@ SoilBasicSkipList >> maxLevel: anInteger [
 	self headerPage maxLevel: anInteger 
 ]
 
+{ #category : #utilities }
+SoilBasicSkipList >> newIndexEntryClass [
+	^ SoilNewSkipListIndexEntry
+]
+
 { #category : #'instance creation' }
 SoilBasicSkipList >> newIterator [ 
 	^ SoilSkipListIterator on: self 
@@ -64,38 +58,6 @@ SoilBasicSkipList >> newPage [
 		valueSize: self valueSize;
 		pageSize: self pageSize;
 		yourself
-]
-
-{ #category : #private }
-SoilBasicSkipList >> nextFreePageIndex [ 
-	| firstFreePage freePageIndex |
-	firstFreePage := self firstFreePage ifNil: [ 
-		^ nil ].
-	^ firstFreePage hasFreePages 
-		ifTrue: [ 
-			freePageIndex := firstFreePage removeFirstIndex.
-			self removePageWithIndexIfPresent: freePageIndex.
-			self addDirtyPage: firstFreePage.
-			freePageIndex  ] 
-		ifFalse: [ 
-			"if firstFreePage has a next pointer we set that as 
-			new first free page. Next will return 0 if there is no
-			next page"
-			freePageIndex := firstFreePage next.
-			self headerPage firstFreePageIndex: firstFreePage next.
-			self removePageWithIndexIfPresent: firstFreePage offset.
-
-			self addDirtyPage: self headerPage.
-			firstFreePage offset ]
-				
-]
-
-{ #category : #'instance creation' }
-SoilBasicSkipList >> nextPageOffset [
-	| offset |
-	offset := store nextPageOffset.
-	self addDirtyPage: store headerPage.
-	^ offset 
 ]
 
 { #category : #'instance creation' }
@@ -133,12 +95,6 @@ SoilBasicSkipList >> removePage: aPage [
 	^ aPage 
 
 
-]
-
-{ #category : #removing }
-SoilBasicSkipList >> removePageWithIndexIfPresent: anInteger [ 
-	(store includesPageAt: anInteger) ifTrue: [ 
-		store removePageAt: anInteger ]
 ]
 
 { #category : #accessing }

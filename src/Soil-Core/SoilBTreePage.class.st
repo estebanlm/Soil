@@ -18,21 +18,19 @@ SoilBTreePage class >> isAbstract [
 	^ self == SoilBTreePage
 ]
 
-{ #category : #adding }
-SoilBTreePage >> addItem: anAssociation [
-	"Updates entry if already there (different to SoilSkipListPage>>#addItem:)"
-	(items anySatisfy: [ :item | item key = anAssociation key ])
-		ifFalse: [ items add: anAssociation ]
-		ifTrue:  [ self itemAt: anAssociation key put: anAssociation value ].
-	needWrite := true
-]
-
 { #category : #assertions }
 SoilBTreePage >> bTreeAssertion [
 	self assert: self hasRoom.
 	"each node has a maximum of M children and at least ceil(M/2) - 1 children"
 	self assert: (self numberOfItems <= self itemCapacity).
 	items isEmpty ifFalse: [ self assert:  self hasUnderflow not  ]
+]
+
+{ #category : #removing }
+SoilBTreePage >> cleanRemovedIn: index [
+	(items select: [ :each | each value isRemoved ])
+		do: [:removedItem | self remove: removedItem key for: index].
+	needWrite := true
 ]
 
 { #category : #private }
@@ -65,10 +63,6 @@ SoilBTreePage >> initialize [
 	super initialize.
 	lastTransaction := 0.
 	needWrite := true
-]
-
-{ #category : #initialization }
-SoilBTreePage >> initializeInIndex: aSoilSkipList [
 ]
 
 { #category : #adding }

@@ -57,7 +57,13 @@ SoilIndex >> addToFreePages: aPage [
 
 { #category : #'instance creation' }
 SoilIndex >> allocatePage [
-	^ self subclassResponsibility
+	| page |
+	page := self newPage 
+		offset: (self nextFreePageIndex
+			ifNil: [ self nextPageOffset ]).
+	self store pageAt: page offset put: page.
+	self addDirtyPage: page.
+	^ page
 ]
 
 { #category : #private }
@@ -93,6 +99,11 @@ SoilIndex >> basicAt: key put: anObject [
 		put: anObject 
 ]
 
+{ #category : #removing }
+SoilIndex >> cleanRemoved: aPage [
+	aPage cleanRemovedIn: self
+]
+
 { #category : #'as yet unclassified' }
 SoilIndex >> cleanUpToVersion: aNumberOrNil [ 
 		SoilIndexCleaner new 
@@ -105,6 +116,12 @@ SoilIndex >> cleanUpToVersion: aNumberOrNil [
 SoilIndex >> close [
 	self store close.
 	store := nil
+]
+
+{ #category : #private }
+SoilIndex >> compact [ 
+	"Rewrite index file without removed items"
+	self rewriteUsing: [ :item | item ]
 ]
 
 { #category : #utilities }
@@ -156,6 +173,11 @@ SoilIndex >> firstPage [
 { #category : #accessing }
 SoilIndex >> flushCachedPages [
 	store flushCachedPages
+]
+
+{ #category : #testing }
+SoilIndex >> hasDirtyPages [
+	^ dirtyPages notEmpty 
 ]
 
 { #category : #testing }
@@ -227,6 +249,11 @@ SoilIndex >> lastPage [
 	^ self newIterator lastPage
 ]
 
+{ #category : #'as yet unclassified' }
+SoilIndex >> markAllDirty [ 
+	store pages do: [ :page | self addDirtyPage: page ]
+]
+
 { #category : #accessing }
 SoilIndex >> maxLevel [
 	"ignored, this allows to switch SkiList and BTree easily"
@@ -243,6 +270,21 @@ SoilIndex >> newFileStore [
 		index: self
 ]
 
+{ #category : #utilities }
+SoilIndex >> newIndexEntry [
+	^ self newIndexEntryClass new
+		maxLevel: self maxLevel;
+		keySize: self keySize;
+		valueSize: self valueSize;
+		yourself 
+
+]
+
+{ #category : #utilities }
+SoilIndex >> newIndexEntryClass [
+	self subclassResponsibility
+]
+
 { #category : #'instance creation' }
 SoilIndex >> newIterator [
 	^ self subclassResponsibility
@@ -253,9 +295,51 @@ SoilIndex >> newPage [
 	^ self subclassResponsibility
 ]
 
+{ #category : #reindexing }
+SoilIndex >> newPluggableRewriter [
+	^ SoilPluggableIndexRewriter new 
+		index: self
+]
+
+{ #category : #private }
+SoilIndex >> nextFreePageIndex [ 
+	| firstFreePage freePageIndex |
+	firstFreePage := self firstFreePage ifNil: [ 
+		^ nil ].
+	^ firstFreePage hasFreePages 
+		ifTrue: [ 
+			freePageIndex := firstFreePage removeFirstIndex.
+			self removePageWithIndexIfPresent: freePageIndex.
+			self addDirtyPage: firstFreePage.
+			freePageIndex  ] 
+		ifFalse: [ 
+			"if firstFreePage has a next pointer we set that as 
+			new first free page. Next will return 0 if there is no
+			next page"
+			freePageIndex := firstFreePage next.
+			self headerPage firstFreePageIndex: firstFreePage next.
+			self removePageWithIndexIfPresent: firstFreePage offset.
+
+			self addDirtyPage: self headerPage.
+			firstFreePage offset ]
+]
+
+{ #category : #initialization }
+SoilIndex >> nextPageOffset [
+	| offset |
+	offset := store nextPageOffset.
+	self addDirtyPage: store headerPage.
+	^ offset 
+]
+
 { #category : #accessing }
 SoilIndex >> pageAt: anInteger [ 
 	^ self store pageAt: anInteger 
+]
+
+{ #category : #'instance creation' }
+SoilIndex >> pageClass [
+	^ self subclassResponsibility
 ]
 
 { #category : #accessing }
@@ -282,7 +366,9 @@ SoilIndex >> readPageClassFrom: aStream [
 SoilIndex >> readPageFrom: aStream [
 	| page |
 	page := (self readPageClassFrom: aStream) basicNew.
-	page initializeInIndex: self. 
+	page 
+		pageSize: self pageSize;
+		initializeInIndex: self. 
 	^ page readFrom: aStream 
 ]
 
@@ -326,6 +412,12 @@ SoilIndex >> removePage: aPage [
 	^ self subclassResponsibility
 ]
 
+{ #category : #removing }
+SoilIndex >> removePageWithIndexIfPresent: anInteger [ 
+	(store includesPageAt: anInteger) ifTrue: [ 
+		store removePageAt: anInteger ]
+]
+
 { #category : #public }
 SoilIndex >> reopen [
 	self 
@@ -336,6 +428,17 @@ SoilIndex >> reopen [
 { #category : #enumerating }
 SoilIndex >> reverseDo: aBlock [
 	self newIterator reverseDo: aBlock
+]
+
+{ #category : #initialization }
+SoilIndex >> rewriteUsing: aBlock [
+	"write new index file and add all items. Use aBlock to 
+	enable converting items"
+	self newPluggableRewriter
+		indexBlock: [ :idx | idx  ];
+		itemBlock: aBlock;
+		cleanRemoved;
+		run
 ]
 
 { #category : #accessing }

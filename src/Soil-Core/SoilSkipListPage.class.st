@@ -26,13 +26,6 @@ SoilSkipListPage class >> isAbstract [
 	^ self == SoilSkipListPage 
 ]
 
-{ #category : #adding }
-SoilSkipListPage >> addItem: anAssociation [
-	"Note: this can only be called for new items, client has to check first and update if an entry for the key is already there, different to SoilBTreePage>>#addItem:"
-	items add: anAssociation.
-	needWrite := true
-]
-
 { #category : #accessing }
 SoilSkipListPage >> biggestKey [
 	^ self isLastPage 
@@ -40,16 +33,23 @@ SoilSkipListPage >> biggestKey [
 		ifFalse: [ self lastKey ]
 ]
 
+{ #category : #removing }
+SoilSkipListPage >> cleanRemoved [
+	items removeAllSuchThat: [ :each | each value isRemoved ].
+	needWrite := true
+]
+
+{ #category : #removing }
+SoilSkipListPage >> cleanRemovedIn: index [
+	"index not needed for the SkipList"
+	self cleanRemoved
+]
+
 { #category : #initialization }
 SoilSkipListPage >> initialize [ 
 	super initialize.
 	lastTransaction := 0.
-	needWrite := true.
-
-]
-
-{ #category : #initialization }
-SoilSkipListPage >> initializeInIndex: aSoilSkipList [
+	needWrite := true
 ]
 
 { #category : #initialization }

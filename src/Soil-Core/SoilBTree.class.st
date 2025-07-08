@@ -37,21 +37,6 @@ SoilBTree >> keySize: anInteger [
 	keySize := anInteger
 ]
 
-{ #category : #'instance creation' }
-SoilBTree >> newPage [
-	^ self pageClass new 
-		keySize: self keySize;
-		valueSize: self valueSize;
-		pageSize: self pageSize;
-		yourself
-]
-
-{ #category : #reindexing }
-SoilBTree >> newPluggableRewriter [
-	^ SoilPluggableIndexRewriter new 
-		index: self
-]
-
 { #category : #accessing }
 SoilBTree >> path [
 
